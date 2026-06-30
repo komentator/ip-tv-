@@ -107,6 +107,7 @@ public class ConfigManager
             Theme = c.GetString("Theme", "Dark"),
             SnapshotDir = c.GetString("SnapshotDir"),
             RecordingDir = c.GetString("RecordingDir"),
+            LastChannelId = c.GetString("LastChannelId"),
         };
     }
 
@@ -123,6 +124,7 @@ public class ConfigManager
         c.SetValue("Theme", cfg.Theme);
         c.SetValue("SnapshotDir", cfg.SnapshotDir ?? "");
         c.SetValue("RecordingDir", cfg.RecordingDir ?? "");
+        c.SetValue("LastChannelId", cfg.LastChannelId ?? "");
     }
 }
 
@@ -138,4 +140,5 @@ public class AppConfig
     public string Theme { get; set; } = "Dark";
     public string? SnapshotDir { get; set; }
     public string? RecordingDir { get; set; }
+    public string? LastChannelId { get; set; }
 }

@@ -28,6 +28,7 @@ public partial class MainWindow : Window
         _viewModel.CurrentProgramChanged += ViewModel_CurrentProgramChanged;
         _viewModel.Buffering += ViewModel_Buffering;
         _viewModel.StreamInfoChanged += ViewModel_StreamInfoChanged;
+        _viewModel.ChannelsListUpdated += (s, e) => UpdateChannelCountText();
 
         PlaylistsList.ItemsSource = _viewModel.Playlists;
         ChannelsList.ItemsSource = _viewModel.CurrentChannels;
@@ -65,13 +66,35 @@ public partial class MainWindow : Window
         ConfigManager.Save(cfg);
     }
 
-    private void Window_Loaded(object sender, RoutedEventArgs e)
+    private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
         if (_viewModel.MediaPlayer != null)
         {
             VideoView.MediaPlayer = _viewModel.MediaPlayer;
         }
         Focus();
+
+        await Task.Delay(800);
+        var cfg = ConfigManager.Load();
+        if (!string.IsNullOrWhiteSpace(cfg.LastChannelId))
+        {
+            var ch = _viewModel.Playlists.SelectMany(p => p.Channels).FirstOrDefault(c => c.Id == cfg.LastChannelId);
+            if (ch != null)
+            {
+                var pl = _viewModel.Playlists.FirstOrDefault(p => p.Channels.Contains(ch));
+                if (pl != null) PlaylistsList.SelectedItem = pl;
+                await Task.Delay(100);
+                ChannelsList.SelectedItem = ch;
+                _viewModel.SelectChannel(ch);
+            }
+        }
+    }
+
+    private void UpdateChannelCountText()
+    {
+        var visible = _viewModel.CurrentChannels.Count;
+        var total = _viewModel.TotalChannelCount;
+        ChannelCountText.Text = visible == total ? $"Каналов: {total}" : $"Найдено: {visible} из {total}";
     }
 
     private void ViewModel_PlaybackStateChanged(object? sender, IpTvPlayer.Services.Playback.PlaybackStateChangedEventArgs e)

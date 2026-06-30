@@ -4,6 +4,7 @@ using IpTvPlayer.Services.Epg;
 using IpTvPlayer.Services.Parsing;
 using IpTvPlayer.Services.Playback;
 using IpTvPlayer.Services.Storage;
+using IpTvPlayer.Utilities;
 using LibVLCSharp.Shared;
 using Serilog;
 
@@ -163,9 +164,16 @@ public class MainViewModel : IDisposable
 
     public async void SelectChannel(Channel channel)
     {
+        if (_selectedChannel != null) _selectedChannel.IsPlaying = false;
         _selectedChannel = channel;
+        channel.IsPlaying = true;
         _playbackService.Play(channel);
         channel.LastWatchedDate = DateTime.Now;
+
+        var cfg = ConfigManager.Load();
+        cfg.LastChannelId = channel.Id;
+        ConfigManager.Save(cfg);
+
         await _storageService.AddWatchHistoryAsync(channel.Id);
         await LoadRecentAsync();
 
@@ -241,6 +249,13 @@ public class MainViewModel : IDisposable
         return null;
     }
 
+    public int TotalChannelCount =>
+        _view == ChannelView.Favorites ? Playlists.SelectMany(p => p.Channels).Count(c => c.IsFavorite) :
+        _view == ChannelView.Recent ? RecentChannels.Count :
+        _selectedPlaylist?.Channels.Count ?? 0;
+
+    public event EventHandler? ChannelsListUpdated;
+
     private void UpdateChannelsList()
     {
         CurrentChannels.Clear();
@@ -271,6 +286,8 @@ public class MainViewModel : IDisposable
         {
             CurrentChannels.Add(channel);
         }
+
+        ChannelsListUpdated?.Invoke(this, EventArgs.Empty);
     }
 
     private void UpdateGroups()

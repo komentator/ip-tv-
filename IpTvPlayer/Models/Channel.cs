@@ -23,6 +23,15 @@ public class Channel : INotifyPropertyChanged
 
     public string FavoriteIcon => IsFavorite ? "★" : "☆";
 
+    private bool _isPlaying;
+    public bool IsPlaying
+    {
+        get => _isPlaying;
+        set { if (_isPlaying != value) { _isPlaying = value; OnPropertyChanged(); OnPropertyChanged(nameof(PlayingIndicator)); } }
+    }
+
+    public string PlayingIndicator => IsPlaying ? "▶ " : "";
+
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
