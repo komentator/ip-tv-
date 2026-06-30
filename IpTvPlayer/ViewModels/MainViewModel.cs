@@ -17,6 +17,14 @@ public enum ChannelView
     Recent
 }
 
+public enum ChannelSort
+{
+    Original,
+    NameAsc,
+    NameDesc,
+    Group
+}
+
 public class MainViewModel : IDisposable
 {
     private readonly StorageService _storageService;
@@ -36,6 +44,7 @@ public class MainViewModel : IDisposable
     private string _searchText = "";
     private string _selectedGroup = "";
     private ChannelView _view = ChannelView.All;
+    private ChannelSort _sort = ChannelSort.Original;
     private EpgProgram? _currentProgram;
 
     public Channel? SelectedChannel => _selectedChannel;
@@ -90,10 +99,42 @@ public class MainViewModel : IDisposable
                 Playlists.Add(pl);
             }
             await LoadRecentAsync();
+            _ = Task.Run(AutoRefreshUrlPlaylistsAsync);
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Error initializing MainViewModel");
+        }
+    }
+
+    private async Task AutoRefreshUrlPlaylistsAsync()
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3));
+            var threshold = TimeSpan.FromHours(24);
+
+            var toRefresh = Playlists
+                .Where(p => p.Source?.StartsWith("http", StringComparison.OrdinalIgnoreCase) == true)
+                .Where(p => p.UpdatedDate == null || DateTime.Now - p.UpdatedDate > threshold)
+                .ToList();
+
+            foreach (var pl in toRefresh)
+            {
+                try
+                {
+                    await RefreshPlaylistAsync(pl);
+                    Log.Information("Auto-refreshed playlist: {Name}", pl.Name);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Auto-refresh failed for {Name}", pl.Name);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Auto-refresh loop error");
         }
     }
 
@@ -206,6 +247,14 @@ public class MainViewModel : IDisposable
         UpdateChannelsList();
     }
 
+    public void SetSort(ChannelSort sort)
+    {
+        _sort = sort;
+        UpdateChannelsList();
+    }
+
+    public ChannelSort CurrentSort => _sort;
+
     public async Task ToggleFavoriteAsync(Channel channel)
     {
         channel.IsFavorite = !channel.IsFavorite;
@@ -281,6 +330,14 @@ public class MainViewModel : IDisposable
 
         if (!string.IsNullOrWhiteSpace(_searchText))
             channels = channels.Where(c => c.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+
+        channels = _sort switch
+        {
+            ChannelSort.NameAsc => channels.OrderBy(c => c.Name),
+            ChannelSort.NameDesc => channels.OrderByDescending(c => c.Name),
+            ChannelSort.Group => channels.OrderBy(c => c.GroupTitle ?? "").ThenBy(c => c.Name),
+            _ => channels
+        };
 
         foreach (var channel in channels)
         {

@@ -246,6 +246,16 @@ public partial class MainWindow : Window
     private void ViewFavorites_Checked(object sender, RoutedEventArgs e) => _viewModel?.SetView(ChannelView.Favorites);
     private void ViewRecent_Checked(object sender, RoutedEventArgs e) => _viewModel?.SetView(ChannelView.Recent);
 
+    private void Sort_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_viewModel == null) return;
+        if (SortBox.SelectedItem is ComboBoxItem item && item.Tag is string tag &&
+            Enum.TryParse<ChannelSort>(tag, out var sort))
+        {
+            _viewModel.SetSort(sort);
+        }
+    }
+
     private async void Favorite_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is Channel channel)

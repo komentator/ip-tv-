@@ -86,11 +86,24 @@
             <!-- Search and Filter -->
             <Border x:Name="FilterBar" Background="#2d2d30" Padding="15" Grid.Row="0">
                 <StackPanel Orientation="Vertical">
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <RadioButton x:Name="ViewAll" Content="Все" IsChecked="True" Foreground="White" Margin="0,0,15,0" GroupName="ViewMode" Checked="ViewAll_Checked"/>
-                        <RadioButton x:Name="ViewFavorites" Content="★ Избранное" Foreground="White" Margin="0,0,15,0" GroupName="ViewMode" Checked="ViewFavorites_Checked"/>
-                        <RadioButton x:Name="ViewRecent" Content="🕒 История" Foreground="White" GroupName="ViewMode" Checked="ViewRecent_Checked"/>
-                    </StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <RadioButton x:Name="ViewAll" Content="Все" IsChecked="True" Foreground="White" Margin="0,0,15,0" GroupName="ViewMode" Checked="ViewAll_Checked"/>
+                            <RadioButton x:Name="ViewFavorites" Content="★ Избранное" Foreground="White" Margin="0,0,15,0" GroupName="ViewMode" Checked="ViewFavorites_Checked"/>
+                            <RadioButton x:Name="ViewRecent" Content="🕒 История" Foreground="White" GroupName="ViewMode" Checked="ViewRecent_Checked"/>
+                        </StackPanel>
+                        <ComboBox Grid.Column="1" x:Name="SortBox" Width="160" Background="#3c3c41" Foreground="White"
+                                  SelectionChanged="Sort_SelectionChanged" SelectedIndex="0">
+                            <ComboBoxItem Content="Без сортировки" Tag="Original"/>
+                            <ComboBoxItem Content="А → Я" Tag="NameAsc"/>
+                            <ComboBoxItem Content="Я → А" Tag="NameDesc"/>
+                            <ComboBoxItem Content="По группе" Tag="Group"/>
+                        </ComboBox>
+                    </Grid>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
