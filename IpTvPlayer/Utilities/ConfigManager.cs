@@ -101,6 +101,9 @@ public class ConfigManager
             DefaultVolume = c.GetInt("DefaultVolume", 100),
             WindowWidth = c.GetInt("WindowWidth", 1280),
             WindowHeight = c.GetInt("WindowHeight", 720),
+            WindowLeft = c.GetInt("WindowLeft", -1),
+            WindowTop = c.GetInt("WindowTop", -1),
+            WindowMaximized = c.GetInt("WindowMaximized") == 1,
             Theme = c.GetString("Theme", "Dark"),
             SnapshotDir = c.GetString("SnapshotDir"),
         };
@@ -113,6 +116,9 @@ public class ConfigManager
         c.SetValue("DefaultVolume", cfg.DefaultVolume);
         c.SetValue("WindowWidth", cfg.WindowWidth);
         c.SetValue("WindowHeight", cfg.WindowHeight);
+        c.SetValue("WindowLeft", cfg.WindowLeft);
+        c.SetValue("WindowTop", cfg.WindowTop);
+        c.SetValue("WindowMaximized", cfg.WindowMaximized ? 1 : 0);
         c.SetValue("Theme", cfg.Theme);
         c.SetValue("SnapshotDir", cfg.SnapshotDir ?? "");
     }
@@ -124,6 +130,9 @@ public class AppConfig
     public int DefaultVolume { get; set; } = 100;
     public int WindowWidth { get; set; } = 1280;
     public int WindowHeight { get; set; } = 720;
+    public int WindowLeft { get; set; } = -1;
+    public int WindowTop { get; set; } = -1;
+    public bool WindowMaximized { get; set; }
     public string Theme { get; set; } = "Dark";
     public string? SnapshotDir { get; set; }
 }

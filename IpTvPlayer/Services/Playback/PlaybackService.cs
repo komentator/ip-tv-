@@ -13,6 +13,7 @@ public class PlaybackService : IDisposable
     public MediaPlayer? MediaPlayer => _mediaPlayer;
 
     public event EventHandler<PlaybackStateChangedEventArgs>? PlaybackStateChanged;
+    public event EventHandler<float>? Buffering;
 
     public PlaybackService()
     {
@@ -32,6 +33,16 @@ public class PlaybackService : IDisposable
             {
                 Log.Information("Playback ended");
                 PlaybackStateChanged?.Invoke(this, new PlaybackStateChangedEventArgs { IsPlaying = false });
+            };
+
+            _mediaPlayer.Buffering += (s, e) =>
+            {
+                Buffering?.Invoke(this, e.Cache);
+            };
+
+            _mediaPlayer.Playing += (s, e) =>
+            {
+                Buffering?.Invoke(this, 100f);
             };
 
             Log.Information("PlaybackService initialized");

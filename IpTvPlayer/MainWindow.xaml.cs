@@ -26,10 +26,42 @@ public partial class MainWindow : Window
 
         _viewModel.PlaybackStateChanged += ViewModel_PlaybackStateChanged;
         _viewModel.CurrentProgramChanged += ViewModel_CurrentProgramChanged;
+        _viewModel.Buffering += ViewModel_Buffering;
 
         PlaylistsList.ItemsSource = _viewModel.Playlists;
         ChannelsList.ItemsSource = _viewModel.CurrentChannels;
         GroupFilter.ItemsSource = _viewModel.Groups;
+
+        RestoreWindowState();
+    }
+
+    private void RestoreWindowState()
+    {
+        var cfg = ConfigManager.Load();
+        if (cfg.WindowWidth > 200) Width = cfg.WindowWidth;
+        if (cfg.WindowHeight > 200) Height = cfg.WindowHeight;
+        if (cfg.WindowLeft >= 0 && cfg.WindowTop >= 0)
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = cfg.WindowLeft;
+            Top = cfg.WindowTop;
+        }
+        if (cfg.WindowMaximized) WindowState = WindowState.Maximized;
+        VolumeSlider.Value = cfg.DefaultVolume;
+    }
+
+    private void SaveWindowState()
+    {
+        var cfg = ConfigManager.Load();
+        if (WindowState != WindowState.Maximized)
+        {
+            cfg.WindowWidth = (int)Width;
+            cfg.WindowHeight = (int)Height;
+            cfg.WindowLeft = (int)Left;
+            cfg.WindowTop = (int)Top;
+        }
+        cfg.WindowMaximized = WindowState == WindowState.Maximized;
+        ConfigManager.Save(cfg);
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -60,6 +92,23 @@ public partial class MainWindow : Window
                 VideoPlaceholder.Text = "Выберите канал для воспроизведения";
                 VideoPlaceholder.Visibility = Visibility.Visible;
                 TitleInfo.Text = "";
+            }
+        });
+    }
+
+    private void ViewModel_Buffering(object? sender, float cache)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (cache >= 99.9f)
+            {
+                BufferOverlay.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                BufferOverlay.Visibility = Visibility.Visible;
+                BufferText.Text = $"Загрузка {cache:0}%";
+                BufferProgress.Value = cache;
             }
         });
     }
@@ -375,6 +424,10 @@ public partial class MainWindow : Window
                 if (_isFullscreen) ToggleFullscreen();
                 e.Handled = true;
                 break;
+            case Key.F1:
+                new Views.HotkeysHelpWindow { Owner = this }.ShowDialog();
+                e.Handled = true;
+                break;
             case Key.M:
                 ToggleMute();
                 e.Handled = true;
@@ -410,6 +463,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        try { SaveWindowState(); } catch { }
         _viewModel?.Dispose();
         base.OnClosed(e);
     }

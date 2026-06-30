@@ -46,6 +46,7 @@ public class MainViewModel : IDisposable
 
     public event EventHandler<PlaybackStateChangedEventArgs>? PlaybackStateChanged;
     public event EventHandler<EpgProgram?>? CurrentProgramChanged;
+    public event EventHandler<float>? Buffering;
 
     public MainViewModel()
     {
@@ -62,6 +63,11 @@ public class MainViewModel : IDisposable
         _playbackService.PlaybackStateChanged += (s, e) =>
         {
             PlaybackStateChanged?.Invoke(this, e);
+        };
+
+        _playbackService.Buffering += (s, cache) =>
+        {
+            Buffering?.Invoke(this, cache);
         };
 
         InitializeAsync();
