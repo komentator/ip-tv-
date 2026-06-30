@@ -285,6 +285,40 @@ public partial class MainWindow : Window
 
     private void Fullscreen_Click(object sender, RoutedEventArgs e) => ToggleFullscreen();
 
+    private void Record_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.IsRecording)
+        {
+            _viewModel.StopRecording();
+            RecordButton.Content = "⏺";
+            RecordButton.Foreground = System.Windows.Media.Brushes.White;
+            EpgInfo.Text = "⏹ Запись остановлена";
+        }
+        else
+        {
+            if (_viewModel.SelectedChannel == null)
+            {
+                EpgInfo.Text = "Сначала выбери канал";
+                return;
+            }
+            var cfg = ConfigManager.Load();
+            var dir = string.IsNullOrWhiteSpace(cfg.RecordingDir)
+                ? System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Recordings")
+                : cfg.RecordingDir;
+            var path = _viewModel.StartRecording(dir);
+            if (path != null)
+            {
+                RecordButton.Content = "⏹";
+                RecordButton.Foreground = System.Windows.Media.Brushes.Red;
+                EpgInfo.Text = $"⏺ Запись: {System.IO.Path.GetFileName(path)}";
+            }
+            else
+            {
+                EpgInfo.Text = "Не удалось начать запись";
+            }
+        }
+    }
+
     private void Snapshot_Click(object sender, RoutedEventArgs e)
     {
         var mp = _viewModel.MediaPlayer;
@@ -465,6 +499,46 @@ public partial class MainWindow : Window
         if (idx >= _viewModel.CurrentChannels.Count) idx = 0;
         ChannelsList.SelectedIndex = idx;
         ChannelsList.ScrollIntoView(ChannelsList.SelectedItem);
+    }
+
+    private void Window_DragOver(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files != null && files.Any(IsM3UFile))
+            {
+                e.Effects = DragDropEffects.Copy;
+                e.Handled = true;
+                return;
+            }
+        }
+        e.Effects = DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private async void Window_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files == null) return;
+
+            foreach (var file in files.Where(IsM3UFile))
+            {
+                var name = System.IO.Path.GetFileNameWithoutExtension(file);
+                EpgInfo.Text = $"📥 Импорт {name}...";
+                await _viewModel.ImportPlaylistFromFileAsync(file, name);
+                EpgInfo.Text = $"✓ Импортирован {name}";
+            }
+        }
+    }
+
+    private static bool IsM3UFile(string path)
+    {
+        var ext = System.IO.Path.GetExtension(path);
+        return string.Equals(ext, ".m3u", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(ext, ".m3u8", StringComparison.OrdinalIgnoreCase);
     }
 
     private async void PlaylistRefresh_Click(object sender, RoutedEventArgs e)

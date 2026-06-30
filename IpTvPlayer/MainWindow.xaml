@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
         Title="IP TV Player" Height="720" Width="1280" Background="#1e1e1e" Foreground="#ffffff"
-        Loaded="Window_Loaded" KeyDown="Window_KeyDown" Focusable="True">
+        Loaded="Window_Loaded" KeyDown="Window_KeyDown" Focusable="True"
+        AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop">
     <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="50" x:Name="TopBarRow"/>
@@ -194,6 +195,7 @@
                 <Button Content="⏸" Padding="10,5" Background="#0e639c" Foreground="White" Margin="0,0,5,0" Click="Pause_Click"/>
                 <Button Content="⏹" Padding="10,5" Background="#0e639c" Foreground="White" Margin="0,0,15,0" Click="Stop_Click"/>
                 <Button Content="⛶" ToolTip="Полноэкранный режим (F)" Padding="10,5" Background="#3e3e42" Foreground="White" Margin="0,0,5,0" Click="Fullscreen_Click"/>
+                <Button x:Name="RecordButton" Content="⏺" ToolTip="Запись" Padding="10,5" Background="#3e3e42" Foreground="White" Margin="0,0,5,0" Click="Record_Click"/>
                 <Button Content="📸" ToolTip="Скриншот" Padding="10,5" Background="#3e3e42" Foreground="White" Margin="0,0,5,0" Click="Snapshot_Click"/>
                 <Button Content="🎵" ToolTip="Аудио / субтитры" Padding="10,5" Background="#3e3e42" Foreground="White" Margin="0,0,5,0" Click="Tracks_Click"/>
                 <Button Content="📅" ToolTip="Программа передач" Padding="10,5" Background="#3e3e42" Foreground="White" Margin="0,0,5,0" Click="Schedule_Click"/>

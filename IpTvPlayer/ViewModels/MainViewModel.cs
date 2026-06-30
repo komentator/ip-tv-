@@ -311,6 +311,10 @@ public class MainViewModel : IDisposable
     }
 
     public bool IsPlaying => _playbackService.IsPlaying;
+    public bool IsRecording => _playbackService.IsRecording;
+
+    public string? StartRecording(string dir) => _playbackService.StartRecording(dir);
+    public void StopRecording() => _playbackService.StopRecording();
 
     public async Task DeletePlaylistAsync(string playlistId)
     {

@@ -139,6 +139,53 @@ public class PlaybackService : IDisposable
 
     public bool IsPlaying => _mediaPlayer?.IsPlaying ?? false;
 
+    public bool IsRecording => _recordingPath != null;
+    private string? _recordingPath;
+
+    public string? StartRecording(string directory)
+    {
+        if (_mediaPlayer == null || _currentChannel == null || _libVlc == null) return null;
+        if (_recordingPath != null) return _recordingPath;
+
+        try
+        {
+            Directory.CreateDirectory(directory);
+            var safeName = string.Concat((_currentChannel.Name).Split(Path.GetInvalidFileNameChars()));
+            var path = Path.Combine(directory, $"{safeName}_{DateTime.Now:yyyyMMdd_HHmmss}.ts");
+            var escaped = path.Replace("\\", "/");
+            var sout = $":sout=#duplicate{{dst=file{{dst='{escaped}'}},dst=display}}";
+
+            var media = new Media(_libVlc, _currentChannel.Url, FromType.FromLocation, sout, ":sout-keep");
+            _mediaPlayer.Media = media;
+            _mediaPlayer.Play();
+            _recordingPath = path;
+            Log.Information("Recording started: {Path}", path);
+            return path;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error starting recording");
+            return null;
+        }
+    }
+
+    public void StopRecording()
+    {
+        if (_recordingPath == null || _mediaPlayer == null || _currentChannel == null || _libVlc == null) return;
+        try
+        {
+            Log.Information("Recording stopped: {Path}", _recordingPath);
+            _recordingPath = null;
+            var media = new Media(_libVlc, _currentChannel.Url, FromType.FromLocation);
+            _mediaPlayer.Media = media;
+            _mediaPlayer.Play();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error stopping recording");
+        }
+    }
+
     private string BuildStreamInfo()
     {
         if (_mediaPlayer == null) return "";

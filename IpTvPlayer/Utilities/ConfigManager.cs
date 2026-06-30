@@ -106,6 +106,7 @@ public class ConfigManager
             WindowMaximized = c.GetInt("WindowMaximized") == 1,
             Theme = c.GetString("Theme", "Dark"),
             SnapshotDir = c.GetString("SnapshotDir"),
+            RecordingDir = c.GetString("RecordingDir"),
         };
     }
 
@@ -121,6 +122,7 @@ public class ConfigManager
         c.SetValue("WindowMaximized", cfg.WindowMaximized ? 1 : 0);
         c.SetValue("Theme", cfg.Theme);
         c.SetValue("SnapshotDir", cfg.SnapshotDir ?? "");
+        c.SetValue("RecordingDir", cfg.RecordingDir ?? "");
     }
 }
 
@@ -135,4 +137,5 @@ public class AppConfig
     public bool WindowMaximized { get; set; }
     public string Theme { get; set; } = "Dark";
     public string? SnapshotDir { get; set; }
+    public string? RecordingDir { get; set; }
 }
