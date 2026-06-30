@@ -400,6 +400,51 @@ public class StorageService
         return programs;
     }
 
+    public async Task<List<EpgProgram>> SearchEpgAsync(string query, int limit = 200)
+    {
+        var result = new List<EpgProgram>();
+        if (string.IsNullOrWhiteSpace(query)) return result;
+
+        try
+        {
+            using var connection = new SQLiteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            const string sql = @"SELECT Id, ChannelTvgId, Title, Description, Category, StartTime, EndTime
+                FROM EpgPrograms
+                WHERE (Title LIKE @Q OR Description LIKE @Q)
+                  AND EndTime > @Now
+                ORDER BY StartTime
+                LIMIT @Limit";
+
+            using var cmd = new SQLiteCommand(sql, connection);
+            cmd.Parameters.AddWithValue("@Q", "%" + query + "%");
+            cmd.Parameters.AddWithValue("@Now", DateTime.Now.ToString("O"));
+            cmd.Parameters.AddWithValue("@Limit", limit);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new EpgProgram
+                {
+                    Id = reader.GetString(0),
+                    ChannelTvgId = reader.GetString(1),
+                    Title = reader.GetString(2),
+                    Description = reader.GetString(3),
+                    Category = reader.GetString(4),
+                    StartTime = DateTime.Parse(reader.GetString(5)),
+                    EndTime = DateTime.Parse(reader.GetString(6))
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error searching EPG");
+        }
+
+        return result;
+    }
+
     public async Task CleanupOldEpgAsync(DateTime cutoff)
     {
         try

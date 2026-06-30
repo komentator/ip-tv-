@@ -272,6 +272,17 @@ public class MainViewModel : IDisposable
     public Task<List<EpgProgram>> GetScheduleAsync(Channel channel, DateTime from, DateTime to) =>
         _epgService.GetScheduleAsync(channel, from, to);
 
+    public StorageService Storage => _storageService;
+
+    public Channel? FindChannelByTvgId(string tvgId)
+    {
+        if (string.IsNullOrWhiteSpace(tvgId)) return null;
+        foreach (var pl in Playlists)
+            foreach (var ch in pl.Channels)
+                if (ch.TvgId == tvgId) return ch;
+        return null;
+    }
+
     private async Task LoadRecentAsync()
     {
         try

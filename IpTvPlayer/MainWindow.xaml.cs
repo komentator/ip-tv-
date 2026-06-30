@@ -411,6 +411,22 @@ public partial class MainWindow : Window
         win.ShowDialog();
     }
 
+    private void EpgSearch_Click(object sender, RoutedEventArgs e)
+    {
+        var win = new Views.EpgSearchWindow(_viewModel.Storage) { Owner = this };
+        win.PlayByTvgId = tvgId =>
+        {
+            var ch = _viewModel.FindChannelByTvgId(tvgId);
+            if (ch != null)
+            {
+                _viewModel.SelectChannel(ch);
+                ChannelsList.SelectedItem = ch;
+                win.Close();
+            }
+        };
+        win.ShowDialog();
+    }
+
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
         var win = new Views.SettingsWindow { Owner = this };
