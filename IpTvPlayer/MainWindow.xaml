@@ -166,7 +166,11 @@
                 <Button Content="▶" Padding="10,5" Background="#0e639c" Foreground="White" Margin="0,0,5,0" Click="Play_Click"/>
                 <Button Content="⏸" Padding="10,5" Background="#0e639c" Foreground="White" Margin="0,0,5,0" Click="Pause_Click"/>
                 <Button Content="⏹" Padding="10,5" Background="#0e639c" Foreground="White" Margin="0,0,15,0" Click="Stop_Click"/>
-                <Button Content="⛶ Полноэкр." Padding="10,5" Background="#3e3e42" Foreground="White" Margin="0,0,5,0" Click="Fullscreen_Click"/>
+                <Button Content="⛶" ToolTip="Полноэкранный режим (F)" Padding="10,5" Background="#3e3e42" Foreground="White" Margin="0,0,5,0" Click="Fullscreen_Click"/>
+                <Button Content="📸" ToolTip="Скриншот" Padding="10,5" Background="#3e3e42" Foreground="White" Margin="0,0,5,0" Click="Snapshot_Click"/>
+                <Button Content="🎵" ToolTip="Аудио / субтитры" Padding="10,5" Background="#3e3e42" Foreground="White" Margin="0,0,5,0" Click="Tracks_Click"/>
+                <Button Content="📅" ToolTip="Программа передач" Padding="10,5" Background="#3e3e42" Foreground="White" Margin="0,0,5,0" Click="Schedule_Click"/>
+                <Button Content="⚙" ToolTip="Настройки" Padding="10,5" Background="#3e3e42" Foreground="White" Click="Settings_Click"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center">

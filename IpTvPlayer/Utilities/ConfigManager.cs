@@ -102,6 +102,7 @@ public class ConfigManager
             WindowWidth = c.GetInt("WindowWidth", 1280),
             WindowHeight = c.GetInt("WindowHeight", 720),
             Theme = c.GetString("Theme", "Dark"),
+            SnapshotDir = c.GetString("SnapshotDir"),
         };
     }
 
@@ -113,6 +114,7 @@ public class ConfigManager
         c.SetValue("WindowWidth", cfg.WindowWidth);
         c.SetValue("WindowHeight", cfg.WindowHeight);
         c.SetValue("Theme", cfg.Theme);
+        c.SetValue("SnapshotDir", cfg.SnapshotDir ?? "");
     }
 }
 
@@ -123,4 +125,5 @@ public class AppConfig
     public int WindowWidth { get; set; } = 1280;
     public int WindowHeight { get; set; } = 720;
     public string Theme { get; set; } = "Dark";
+    public string? SnapshotDir { get; set; }
 }

@@ -230,6 +230,75 @@ public partial class MainWindow : Window
 
     private void Fullscreen_Click(object sender, RoutedEventArgs e) => ToggleFullscreen();
 
+    private void Snapshot_Click(object sender, RoutedEventArgs e)
+    {
+        var mp = _viewModel.MediaPlayer;
+        if (mp == null || !mp.IsPlaying)
+        {
+            EpgInfo.Text = "Нечего снимать — нет потока";
+            return;
+        }
+
+        var cfg = ConfigManager.Load();
+        var dir = string.IsNullOrWhiteSpace(cfg.SnapshotDir)
+            ? System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Snapshots")
+            : cfg.SnapshotDir;
+        System.IO.Directory.CreateDirectory(dir);
+
+        var name = (_viewModel.SelectedChannel?.Name ?? "snapshot").Replace(' ', '_');
+        foreach (var c in System.IO.Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
+        var file = System.IO.Path.Combine(dir, $"{name}_{DateTime.Now:yyyyMMdd_HHmmss}.png");
+
+        try
+        {
+            mp.TakeSnapshot(0, file, 0, 0);
+            EpgInfo.Text = $"📸 Сохранено: {System.IO.Path.GetFileName(file)}";
+        }
+        catch (Exception ex)
+        {
+            EpgInfo.Text = $"Ошибка снимка: {ex.Message}";
+        }
+    }
+
+    private void Tracks_Click(object sender, RoutedEventArgs e)
+    {
+        var mp = _viewModel.MediaPlayer;
+        if (mp == null)
+        {
+            EpgInfo.Text = "Плеер не инициализирован";
+            return;
+        }
+        var dlg = new Views.TracksDialog { Owner = this };
+        dlg.Load(mp);
+        dlg.ShowDialog();
+    }
+
+    private async void Schedule_Click(object sender, RoutedEventArgs e)
+    {
+        var channel = _viewModel.SelectedChannel;
+        if (channel == null)
+        {
+            EpgInfo.Text = "Сначала выбери канал";
+            return;
+        }
+        var from = DateTime.Now.AddHours(-2);
+        var to = DateTime.Now.AddHours(24);
+        var programs = await _viewModel.GetScheduleAsync(channel, from, to);
+        var win = new Views.EpgScheduleWindow { Owner = this };
+        win.Load(channel, programs);
+        win.ShowDialog();
+    }
+
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        var win = new Views.SettingsWindow { Owner = this };
+        if (win.ShowDialog() == true)
+        {
+            var cfg = ConfigManager.Load();
+            VolumeSlider.Value = cfg.DefaultVolume;
+        }
+    }
+
     private void VideoArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ClickCount == 2)
