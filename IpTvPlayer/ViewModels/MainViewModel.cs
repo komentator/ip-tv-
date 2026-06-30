@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using IpTvPlayer.Models;
+using IpTvPlayer.Services.Epg;
 using IpTvPlayer.Services.Parsing;
 using IpTvPlayer.Services.Playback;
 using IpTvPlayer.Services.Storage;
@@ -8,15 +9,24 @@ using Serilog;
 
 namespace IpTvPlayer.ViewModels;
 
+public enum ChannelView
+{
+    All,
+    Favorites,
+    Recent
+}
+
 public class MainViewModel : IDisposable
 {
     private readonly StorageService _storageService;
     private readonly M3UParser _parser;
     private readonly PlaybackService _playbackService;
+    private readonly EpgService _epgService;
 
     public ObservableCollection<Playlist> Playlists { get; }
     public ObservableCollection<Channel> CurrentChannels { get; }
     public ObservableCollection<string> Groups { get; }
+    public ObservableCollection<Channel> RecentChannels { get; }
 
     public MediaPlayer? MediaPlayer => _playbackService.MediaPlayer;
 
@@ -24,18 +34,30 @@ public class MainViewModel : IDisposable
     private Channel? _selectedChannel;
     private string _searchText = "";
     private string _selectedGroup = "";
+    private ChannelView _view = ChannelView.All;
+    private EpgProgram? _currentProgram;
+
+    public Channel? SelectedChannel => _selectedChannel;
+    public EpgProgram? CurrentProgram
+    {
+        get => _currentProgram;
+        private set { _currentProgram = value; CurrentProgramChanged?.Invoke(this, value); }
+    }
 
     public event EventHandler<PlaybackStateChangedEventArgs>? PlaybackStateChanged;
+    public event EventHandler<EpgProgram?>? CurrentProgramChanged;
 
     public MainViewModel()
     {
         _storageService = new StorageService();
         _parser = new M3UParser();
         _playbackService = new PlaybackService();
+        _epgService = new EpgService(_storageService);
 
         Playlists = new ObservableCollection<Playlist>();
         CurrentChannels = new ObservableCollection<Channel>();
         Groups = new ObservableCollection<string>();
+        RecentChannels = new ObservableCollection<Channel>();
 
         _playbackService.PlaybackStateChanged += (s, e) =>
         {
@@ -54,6 +76,7 @@ public class MainViewModel : IDisposable
             {
                 Playlists.Add(pl);
             }
+            await LoadRecentAsync();
         }
         catch (Exception ex)
         {
@@ -126,11 +149,23 @@ public class MainViewModel : IDisposable
         UpdateGroups();
     }
 
-    public void SelectChannel(Channel channel)
+    public async void SelectChannel(Channel channel)
     {
         _selectedChannel = channel;
         _playbackService.Play(channel);
         channel.LastWatchedDate = DateTime.Now;
+        await _storageService.AddWatchHistoryAsync(channel.Id);
+        await LoadRecentAsync();
+
+        try
+        {
+            CurrentProgram = await _epgService.GetCurrentAsync(channel);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error fetching current EPG program");
+            CurrentProgram = null;
+        }
     }
 
     public void SearchChannels(string searchText)
@@ -145,14 +180,74 @@ public class MainViewModel : IDisposable
         UpdateChannelsList();
     }
 
+    public void SetView(ChannelView view)
+    {
+        _view = view;
+        UpdateChannelsList();
+    }
+
+    public async Task ToggleFavoriteAsync(Channel channel)
+    {
+        channel.IsFavorite = !channel.IsFavorite;
+        await _storageService.SetChannelFavoriteAsync(channel.Id, channel.IsFavorite);
+        if (_view == ChannelView.Favorites) UpdateChannelsList();
+    }
+
+    public async Task RefreshEpgAsync(string xmltvUrl, bool force = false)
+    {
+        await _epgService.RefreshFromUrlAsync(xmltvUrl, force);
+        if (_selectedChannel != null)
+            CurrentProgram = await _epgService.GetCurrentAsync(_selectedChannel);
+    }
+
+    public Task<List<EpgProgram>> GetScheduleAsync(Channel channel, DateTime from, DateTime to) =>
+        _epgService.GetScheduleAsync(channel, from, to);
+
+    private async Task LoadRecentAsync()
+    {
+        try
+        {
+            var entries = await _storageService.GetRecentWatchHistoryAsync(20);
+            RecentChannels.Clear();
+            foreach (var e in entries)
+            {
+                var channel = FindChannelById(e.ChannelId);
+                if (channel != null) RecentChannels.Add(channel);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error loading recent");
+        }
+    }
+
+    private Channel? FindChannelById(string id)
+    {
+        foreach (var pl in Playlists)
+            foreach (var ch in pl.Channels)
+                if (ch.Id == id) return ch;
+        return null;
+    }
+
     private void UpdateChannelsList()
     {
         CurrentChannels.Clear();
 
-        if (_selectedPlaylist == null)
-            return;
+        IEnumerable<Channel> channels;
 
-        var channels = _selectedPlaylist.Channels.AsEnumerable();
+        if (_view == ChannelView.Favorites)
+        {
+            channels = Playlists.SelectMany(p => p.Channels).Where(c => c.IsFavorite);
+        }
+        else if (_view == ChannelView.Recent)
+        {
+            channels = RecentChannels;
+        }
+        else
+        {
+            if (_selectedPlaylist == null) return;
+            channels = _selectedPlaylist.Channels.AsEnumerable();
+        }
 
         if (!string.IsNullOrWhiteSpace(_selectedGroup) && _selectedGroup != "Все")
             channels = channels.Where(c => c.GroupTitle == _selectedGroup);
@@ -202,6 +297,8 @@ public class MainViewModel : IDisposable
     {
         _playbackService.Stop();
     }
+
+    public bool IsPlaying => _playbackService.IsPlaying;
 
     public async Task DeletePlaylistAsync(string playlistId)
     {

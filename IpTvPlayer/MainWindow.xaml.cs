@@ -1,6 +1,8 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using IpTvPlayer.Models;
+using IpTvPlayer.Utilities;
 using IpTvPlayer.ViewModels;
 using Microsoft.Win32;
 
@@ -9,6 +11,12 @@ namespace IpTvPlayer;
 public partial class MainWindow : Window
 {
     private MainViewModel _viewModel;
+    private bool _isFullscreen;
+    private WindowState _prevState;
+    private WindowStyle _prevStyle;
+    private ResizeMode _prevResize;
+    private int _lastVolume = 100;
+    private bool _isMuted;
 
     public MainWindow()
     {
@@ -17,6 +25,7 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
 
         _viewModel.PlaybackStateChanged += ViewModel_PlaybackStateChanged;
+        _viewModel.CurrentProgramChanged += ViewModel_CurrentProgramChanged;
 
         PlaylistsList.ItemsSource = _viewModel.Playlists;
         ChannelsList.ItemsSource = _viewModel.CurrentChannels;
@@ -29,6 +38,7 @@ public partial class MainWindow : Window
         {
             VideoView.MediaPlayer = _viewModel.MediaPlayer;
         }
+        Focus();
     }
 
     private void ViewModel_PlaybackStateChanged(object? sender, IpTvPlayer.Services.Playback.PlaybackStateChangedEventArgs e)
@@ -51,6 +61,16 @@ public partial class MainWindow : Window
                 VideoPlaceholder.Visibility = Visibility.Visible;
                 TitleInfo.Text = "";
             }
+        });
+    }
+
+    private void ViewModel_CurrentProgramChanged(object? sender, Models.EpgProgram? prog)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            EpgInfo.Text = prog == null
+                ? ""
+                : $"📺 {prog.Title}  ({prog.TimeRange})";
         });
     }
 
@@ -91,13 +111,34 @@ public partial class MainWindow : Window
         await _viewModel.ImportPlaylistFromFileAsync(path, name);
     }
 
+    private async void EpgRefresh_Click(object sender, RoutedEventArgs e)
+    {
+        var cfg = ConfigManager.Load();
+        if (string.IsNullOrWhiteSpace(cfg.EpgUrl))
+        {
+            var dlg = new Views.EpgUrlDialog { Owner = this, EpgUrl = cfg.EpgUrl ?? "" };
+            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.EpgUrl)) return;
+            cfg.EpgUrl = dlg.EpgUrl.Trim();
+            ConfigManager.Save(cfg);
+        }
+
+        EpgInfo.Text = "📡 Обновляю EPG...";
+        try
+        {
+            await _viewModel.RefreshEpgAsync(cfg.EpgUrl, force: true);
+            EpgInfo.Text = "EPG обновлён";
+        }
+        catch (Exception ex)
+        {
+            EpgInfo.Text = $"Ошибка EPG: {ex.Message}";
+        }
+    }
+
     private void Playlist_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (PlaylistsList.SelectedItem is Playlist playlist)
         {
             _viewModel.SelectPlaylist(playlist);
-            ChannelsList.ItemsSource = _viewModel.CurrentChannels;
-            GroupFilter.ItemsSource = _viewModel.Groups;
             GroupFilter.SelectedIndex = 0;
         }
     }
@@ -123,6 +164,19 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ViewAll_Checked(object sender, RoutedEventArgs e) => _viewModel?.SetView(ChannelView.All);
+    private void ViewFavorites_Checked(object sender, RoutedEventArgs e) => _viewModel?.SetView(ChannelView.Favorites);
+    private void ViewRecent_Checked(object sender, RoutedEventArgs e) => _viewModel?.SetView(ChannelView.Recent);
+
+    private async void Favorite_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is Channel channel)
+        {
+            await _viewModel.ToggleFavoriteAsync(channel);
+        }
+        e.Handled = true;
+    }
+
     private void Play_Click(object sender, RoutedEventArgs e)
     {
         if (ChannelsList.SelectedItem is Channel channel)
@@ -143,7 +197,146 @@ public partial class MainWindow : Window
 
     private void Volume_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        _viewModel.SetVolume((int)e.NewValue);
+        _viewModel?.SetVolume((int)e.NewValue);
+        if ((int)e.NewValue > 0)
+        {
+            _isMuted = false;
+            if (MuteButton != null) MuteButton.Content = "🔊";
+            _lastVolume = (int)e.NewValue;
+        }
+    }
+
+    private void Mute_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleMute();
+    }
+
+    private void ToggleMute()
+    {
+        if (_isMuted)
+        {
+            VolumeSlider.Value = _lastVolume;
+            MuteButton.Content = "🔊";
+            _isMuted = false;
+        }
+        else
+        {
+            _lastVolume = (int)VolumeSlider.Value;
+            VolumeSlider.Value = 0;
+            MuteButton.Content = "🔇";
+            _isMuted = true;
+        }
+    }
+
+    private void Fullscreen_Click(object sender, RoutedEventArgs e) => ToggleFullscreen();
+
+    private void VideoArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2)
+        {
+            ToggleFullscreen();
+            e.Handled = true;
+        }
+    }
+
+    private void ToggleFullscreen()
+    {
+        if (!_isFullscreen)
+        {
+            _prevState = WindowState;
+            _prevStyle = WindowStyle;
+            _prevResize = ResizeMode;
+
+            TopBar.Visibility = Visibility.Collapsed;
+            Sidebar.Visibility = Visibility.Collapsed;
+            FilterBar.Visibility = Visibility.Collapsed;
+            BottomBar.Visibility = Visibility.Collapsed;
+            ChannelsList.Visibility = Visibility.Collapsed;
+            ChannelsCol.Width = new GridLength(0);
+            SidebarCol.Width = new GridLength(0);
+            TopBarRow.Height = new GridLength(0);
+            BottomBarRow.Height = new GridLength(0);
+
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+            WindowState = WindowState.Maximized;
+
+            _isFullscreen = true;
+        }
+        else
+        {
+            TopBar.Visibility = Visibility.Visible;
+            Sidebar.Visibility = Visibility.Visible;
+            FilterBar.Visibility = Visibility.Visible;
+            BottomBar.Visibility = Visibility.Visible;
+            ChannelsList.Visibility = Visibility.Visible;
+            ChannelsCol.Width = new GridLength(350);
+            SidebarCol.Width = new GridLength(250);
+            TopBarRow.Height = new GridLength(50);
+            BottomBarRow.Height = new GridLength(60);
+
+            WindowState = _prevState;
+            WindowStyle = _prevStyle;
+            ResizeMode = _prevResize;
+
+            _isFullscreen = false;
+        }
+    }
+
+    private void Window_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.OriginalSource is TextBox) return;
+
+        switch (e.Key)
+        {
+            case Key.Space:
+                _viewModel.PlayPause();
+                e.Handled = true;
+                break;
+            case Key.S:
+                _viewModel.Stop();
+                e.Handled = true;
+                break;
+            case Key.F:
+            case Key.F11:
+                ToggleFullscreen();
+                e.Handled = true;
+                break;
+            case Key.Escape:
+                if (_isFullscreen) ToggleFullscreen();
+                e.Handled = true;
+                break;
+            case Key.M:
+                ToggleMute();
+                e.Handled = true;
+                break;
+            case Key.Up:
+                VolumeSlider.Value = Math.Min(100, VolumeSlider.Value + 5);
+                e.Handled = true;
+                break;
+            case Key.Down:
+                VolumeSlider.Value = Math.Max(0, VolumeSlider.Value - 5);
+                e.Handled = true;
+                break;
+            case Key.Right:
+                MoveChannel(1);
+                e.Handled = true;
+                break;
+            case Key.Left:
+                MoveChannel(-1);
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private void MoveChannel(int delta)
+    {
+        if (_viewModel.CurrentChannels.Count == 0) return;
+        var idx = ChannelsList.SelectedIndex + delta;
+        if (idx < 0) idx = _viewModel.CurrentChannels.Count - 1;
+        if (idx >= _viewModel.CurrentChannels.Count) idx = 0;
+        ChannelsList.SelectedIndex = idx;
+        ChannelsList.ScrollIntoView(ChannelsList.SelectedItem);
     }
 
     protected override void OnClosed(EventArgs e)

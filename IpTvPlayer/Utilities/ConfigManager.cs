@@ -88,4 +88,39 @@ public class ConfigManager
             Log.Error(ex, "Error saving config");
         }
     }
+
+    private static ConfigManager? _shared;
+    private static ConfigManager Shared => _shared ??= new ConfigManager();
+
+    public static AppConfig Load()
+    {
+        var c = Shared;
+        return new AppConfig
+        {
+            EpgUrl = c.GetString("EpgUrl"),
+            DefaultVolume = c.GetInt("DefaultVolume", 100),
+            WindowWidth = c.GetInt("WindowWidth", 1280),
+            WindowHeight = c.GetInt("WindowHeight", 720),
+            Theme = c.GetString("Theme", "Dark"),
+        };
+    }
+
+    public static void Save(AppConfig cfg)
+    {
+        var c = Shared;
+        c.SetValue("EpgUrl", cfg.EpgUrl ?? "");
+        c.SetValue("DefaultVolume", cfg.DefaultVolume);
+        c.SetValue("WindowWidth", cfg.WindowWidth);
+        c.SetValue("WindowHeight", cfg.WindowHeight);
+        c.SetValue("Theme", cfg.Theme);
+    }
+}
+
+public class AppConfig
+{
+    public string? EpgUrl { get; set; }
+    public int DefaultVolume { get; set; } = 100;
+    public int WindowWidth { get; set; } = 1280;
+    public int WindowHeight { get; set; } = 720;
+    public string Theme { get; set; } = "Dark";
 }

@@ -1,0 +1,22 @@
+<Window x:Class="IpTvPlayer.Views.EpgUrlDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="URL EPG (XMLTV)" Height="180" Width="540"
+        Background="#252526" Foreground="White"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="URL XMLTV-файла:" FontSize="13" Margin="0,0,0,8"/>
+        <TextBox Grid.Row="1" x:Name="UrlBox" Padding="8" Background="#3c3c41" Foreground="White" FontSize="13"/>
+        <TextBlock Grid.Row="2" Text="Например: https://example.com/epg.xml" FontSize="11" Foreground="#888888" Margin="0,8,0,0"/>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Отмена" Width="90" Margin="0,0,10,0" Padding="8,5" Background="#3e3e42" Foreground="White" Click="Cancel_Click"/>
+            <Button Content="Сохранить" Width="100" Padding="8,5" Background="#0e639c" Foreground="White" Click="Ok_Click" IsDefault="True"/>
+        </StackPanel>
+    </Grid>
+</Window>
