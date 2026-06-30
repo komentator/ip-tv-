@@ -14,6 +14,7 @@ public class PlaybackService : IDisposable
 
     public event EventHandler<PlaybackStateChangedEventArgs>? PlaybackStateChanged;
     public event EventHandler<float>? Buffering;
+    public event EventHandler<string>? StreamInfoChanged;
 
     public PlaybackService()
     {
@@ -43,6 +44,11 @@ public class PlaybackService : IDisposable
             _mediaPlayer.Playing += (s, e) =>
             {
                 Buffering?.Invoke(this, 100f);
+                Task.Run(async () =>
+                {
+                    await Task.Delay(800);
+                    try { StreamInfoChanged?.Invoke(this, BuildStreamInfo()); } catch { }
+                });
             };
 
             Log.Information("PlaybackService initialized");
@@ -132,6 +138,43 @@ public class PlaybackService : IDisposable
     public Channel? GetCurrentChannel() => _currentChannel;
 
     public bool IsPlaying => _mediaPlayer?.IsPlaying ?? false;
+
+    private string BuildStreamInfo()
+    {
+        if (_mediaPlayer == null) return "";
+        try
+        {
+            var media = _mediaPlayer.Media;
+            if (media == null) return "";
+
+            var parts = new List<string>();
+
+            uint width = 0, height = 0;
+            if (_mediaPlayer.Size(0, ref width, ref height) && width > 0 && height > 0)
+            {
+                parts.Add($"{width}x{height}");
+            }
+
+            var fps = _mediaPlayer.Fps;
+            if (fps > 0.1f) parts.Add($"{fps:0.#} fps");
+
+            foreach (var t in media.Tracks)
+            {
+                if (t.TrackType == TrackType.Audio)
+                {
+                    var lang = string.IsNullOrEmpty(t.Language) ? "" : $" {t.Language}";
+                    parts.Add($"🔊{lang} {t.Data.Audio.Channels}ch");
+                    break;
+                }
+            }
+
+            return string.Join("  •  ", parts);
+        }
+        catch
+        {
+            return "";
+        }
+    }
 
     public void Dispose()
     {

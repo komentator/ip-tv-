@@ -27,6 +27,7 @@ public partial class MainWindow : Window
         _viewModel.PlaybackStateChanged += ViewModel_PlaybackStateChanged;
         _viewModel.CurrentProgramChanged += ViewModel_CurrentProgramChanged;
         _viewModel.Buffering += ViewModel_Buffering;
+        _viewModel.StreamInfoChanged += ViewModel_StreamInfoChanged;
 
         PlaylistsList.ItemsSource = _viewModel.Playlists;
         ChannelsList.ItemsSource = _viewModel.CurrentChannels;
@@ -94,6 +95,11 @@ public partial class MainWindow : Window
                 TitleInfo.Text = "";
             }
         });
+    }
+
+    private void ViewModel_StreamInfoChanged(object? sender, string info)
+    {
+        Dispatcher.Invoke(() => StreamInfo.Text = info);
     }
 
     private void ViewModel_Buffering(object? sender, float cache)
@@ -459,6 +465,80 @@ public partial class MainWindow : Window
         if (idx >= _viewModel.CurrentChannels.Count) idx = 0;
         ChannelsList.SelectedIndex = idx;
         ChannelsList.ScrollIntoView(ChannelsList.SelectedItem);
+    }
+
+    private async void PlaylistRefresh_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem mi && mi.Tag is Playlist pl)
+        {
+            EpgInfo.Text = $"🔄 Обновляю {pl.Name}...";
+            await _viewModel.RefreshPlaylistAsync(pl);
+            EpgInfo.Text = $"✓ {pl.Name} обновлён";
+        }
+    }
+
+    private async void PlaylistRename_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem mi && mi.Tag is Playlist pl)
+        {
+            var newName = Views.InputDialog.Ask(this, "Переименовать", "Новое название плейлиста:", pl.Name);
+            if (!string.IsNullOrWhiteSpace(newName))
+                await _viewModel.RenamePlaylistAsync(pl, newName.Trim());
+        }
+    }
+
+    private async void PlaylistDelete_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem mi && mi.Tag is Playlist pl)
+        {
+            var result = MessageBox.Show($"Удалить плейлист \"{pl.Name}\"?", "Подтверждение",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result == MessageBoxResult.Yes)
+                await _viewModel.DeletePlaylistAsync(pl.Id);
+        }
+    }
+
+    private void ChannelPlay_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem mi && mi.Tag is Channel ch)
+            _viewModel.SelectChannel(ch);
+    }
+
+    private async void ChannelFavorite_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem mi && mi.Tag is Channel ch)
+            await _viewModel.ToggleFavoriteAsync(ch);
+    }
+
+    private void ChannelCopyUrl_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem mi && mi.Tag is Channel ch)
+        {
+            try { Clipboard.SetText(ch.Url); EpgInfo.Text = "📋 URL скопирован"; }
+            catch (Exception ex) { EpgInfo.Text = $"Ошибка копирования: {ex.Message}"; }
+        }
+    }
+
+    private void ChannelCopyName_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem mi && mi.Tag is Channel ch)
+        {
+            try { Clipboard.SetText(ch.Name); EpgInfo.Text = "📋 Название скопировано"; }
+            catch (Exception ex) { EpgInfo.Text = $"Ошибка копирования: {ex.Message}"; }
+        }
+    }
+
+    private async void ChannelSchedule_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem mi && mi.Tag is Channel ch)
+        {
+            var from = DateTime.Now.AddHours(-2);
+            var to = DateTime.Now.AddHours(24);
+            var programs = await _viewModel.GetScheduleAsync(ch, from, to);
+            var win = new Views.EpgScheduleWindow { Owner = this };
+            win.Load(ch, programs);
+            win.ShowDialog();
+        }
     }
 
     protected override void OnClosed(EventArgs e)

@@ -21,7 +21,8 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="IP TV Player" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 <TextBlock x:Name="TitleInfo" FontSize="12" VerticalAlignment="Center" Foreground="#888888" Margin="0,0,15,0"/>
-                <TextBlock x:Name="EpgInfo" FontSize="12" VerticalAlignment="Center" Foreground="#cccccc"/>
+                <TextBlock x:Name="EpgInfo" FontSize="12" VerticalAlignment="Center" Foreground="#cccccc" Margin="0,0,15,0"/>
+                <TextBlock x:Name="StreamInfo" FontSize="11" VerticalAlignment="Center" Foreground="#888888"/>
             </StackPanel>
         </Border>
 
@@ -41,6 +42,14 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Border Padding="10,8" Background="Transparent">
+                                <Border.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="🔄 Обновить" Click="PlaylistRefresh_Click" Tag="{Binding}"/>
+                                        <MenuItem Header="✏ Переименовать" Click="PlaylistRename_Click" Tag="{Binding}"/>
+                                        <Separator/>
+                                        <MenuItem Header="🗑 Удалить" Click="PlaylistDelete_Click" Tag="{Binding}"/>
+                                    </ContextMenu>
+                                </Border.ContextMenu>
                                 <StackPanel>
                                     <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Bold"/>
                                     <TextBlock Text="{Binding Channels.Count, StringFormat='Каналов: {0}'}" FontSize="10" Foreground="#888888"/>
@@ -104,6 +113,17 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Border Padding="10,8" BorderThickness="0,0,0,1" BorderBrush="#3e3e42" Background="Transparent">
+                                <Border.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="▶ Воспроизвести" Click="ChannelPlay_Click" Tag="{Binding}"/>
+                                        <MenuItem Header="★ В избранное / убрать" Click="ChannelFavorite_Click" Tag="{Binding}"/>
+                                        <Separator/>
+                                        <MenuItem Header="📋 Копировать URL" Click="ChannelCopyUrl_Click" Tag="{Binding}"/>
+                                        <MenuItem Header="📋 Копировать название" Click="ChannelCopyName_Click" Tag="{Binding}"/>
+                                        <Separator/>
+                                        <MenuItem Header="📅 Программа канала" Click="ChannelSchedule_Click" Tag="{Binding}"/>
+                                    </ContextMenu>
+                                </Border.ContextMenu>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="50"/>

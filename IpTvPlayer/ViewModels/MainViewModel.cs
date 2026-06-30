@@ -47,6 +47,7 @@ public class MainViewModel : IDisposable
     public event EventHandler<PlaybackStateChangedEventArgs>? PlaybackStateChanged;
     public event EventHandler<EpgProgram?>? CurrentProgramChanged;
     public event EventHandler<float>? Buffering;
+    public event EventHandler<string>? StreamInfoChanged;
 
     public MainViewModel()
     {
@@ -68,6 +69,11 @@ public class MainViewModel : IDisposable
         _playbackService.Buffering += (s, cache) =>
         {
             Buffering?.Invoke(this, cache);
+        };
+
+        _playbackService.StreamInfoChanged += (s, info) =>
+        {
+            StreamInfoChanged?.Invoke(this, info);
         };
 
         InitializeAsync();
@@ -314,6 +320,57 @@ public class MainViewModel : IDisposable
             Playlists.Remove(playlist);
             await _storageService.DeletePlaylistAsync(playlistId);
         }
+    }
+
+    public async Task RenamePlaylistAsync(Playlist playlist, string newName)
+    {
+        playlist.Name = newName;
+        playlist.UpdatedDate = DateTime.Now;
+        await _storageService.SavePlaylistAsync(playlist);
+        var idx = Playlists.IndexOf(playlist);
+        if (idx >= 0)
+        {
+            Playlists.RemoveAt(idx);
+            Playlists.Insert(idx, playlist);
+        }
+    }
+
+    public async Task RefreshPlaylistAsync(Playlist playlist)
+    {
+        if (string.IsNullOrWhiteSpace(playlist.Source))
+        {
+            Log.Warning("Cannot refresh playlist without source");
+            return;
+        }
+
+        List<Channel> channels;
+        if (playlist.Source.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            channels = await _parser.ParseM3UFromUrlAsync(playlist.Source);
+        }
+        else
+        {
+            var content = await File.ReadAllTextAsync(playlist.Source);
+            channels = _parser.ParseM3U(content);
+        }
+
+        if (channels.Count == 0)
+        {
+            Log.Warning("Refresh returned 0 channels for {Name}", playlist.Name);
+            return;
+        }
+
+        var favoritesById = playlist.Channels.Where(c => c.IsFavorite).Select(c => c.TvgId ?? c.Url).ToHashSet();
+        foreach (var c in channels)
+        {
+            if (favoritesById.Contains(c.TvgId ?? c.Url)) c.IsFavorite = true;
+        }
+
+        playlist.Channels = channels;
+        playlist.UpdatedDate = DateTime.Now;
+        await _storageService.SavePlaylistAsync(playlist);
+
+        if (_selectedPlaylist == playlist) UpdateChannelsList();
     }
 
     public void Dispose()
