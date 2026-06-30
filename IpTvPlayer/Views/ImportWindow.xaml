@@ -1,0 +1,27 @@
+<Window x:Class="IpTvPlayer.Views.ImportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Импорт плейлиста" Height="250" Width="500" Background="#1e1e1e" Foreground="#ffffff"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+    <Border Padding="20">
+        <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Выберите способ импорта" FontSize="14" FontWeight="Bold" Margin="0,0,0,20"/>
+
+            <StackPanel Margin="0,0,0,15">
+                <TextBlock Text="Название плейлиста:" FontSize="11" Margin="0,0,0,5"/>
+                <TextBox x:Name="PlaylistNameBox" Padding="8,8" Background="#3c3c41" Foreground="White" Height="35"/>
+            </StackPanel>
+
+            <StackPanel Margin="0,0,0,15">
+                <TextBlock Text="URL плейлиста:" FontSize="11" Margin="0,0,0,5"/>
+                <TextBox x:Name="UrlBox" Padding="8,8" Background="#3c3c41" Foreground="White" Height="35"
+                         TextWrapping="Wrap" AcceptsReturn="False"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                <Button Content="Импортировать" Padding="15,8" Background="#0e639c" Foreground="White" Margin="0,0,10,0" Click="Import_Click"/>
+                <Button Content="Отмена" Padding="15,8" Background="#3c3c41" Foreground="White" Click="Cancel_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

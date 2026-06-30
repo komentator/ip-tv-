@@ -1,0 +1,170 @@
+﻿<Window x:Class="IpTvPlayer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
+        Title="IP TV Player" Height="720" Width="1280" Background="#1e1e1e" Foreground="#ffffff"
+        Loaded="Window_Loaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="60"/>
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Title Bar -->
+        <Border Grid.ColumnSpan="2" Background="#252526" Padding="15,10">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="IP TV Player" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock x:Name="TitleInfo" FontSize="12" VerticalAlignment="Center" Foreground="#888888"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Sidebar with Playlists -->
+        <Border Grid.Row="1" Background="#252526" BorderThickness="0,0,1,0" BorderBrush="#3e3e42">
+            <DockPanel>
+                <!-- Playlist Header -->
+                <Border DockPanel.Dock="Top" Background="#2d2d30" Padding="10">
+                    <StackPanel>
+                        <TextBlock Text="Плейлисты" FontSize="14" FontWeight="Bold" Margin="0,0,0,10"/>
+                        <Button Content="+ Импорт" Padding="8,5" Background="#0e639c" Foreground="White" Click="ImportPlaylist_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Playlists ListBox -->
+                <ListBox x:Name="PlaylistsList" Background="Transparent" BorderThickness="0"
+                         SelectionChanged="Playlist_SelectionChanged" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="10,8" Background="Transparent">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Channels.Count, StringFormat='Каналов: {0}'}" FontSize="10" Foreground="#888888"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#0e639c"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#3e3e42"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1" Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Search and Filter -->
+            <Border Background="#2d2d30" Padding="15" Grid.Row="0">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock Text="Поиск и фильтры" FontSize="12" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="200"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="SearchBox" Padding="8,8" Background="#3c3c41" Foreground="White" TextChanged="Search_TextChanged"/>
+                        <ComboBox x:Name="GroupFilter" Grid.Column="1" Padding="8,8" Margin="10,0,0,0" Background="#3c3c41" Foreground="White" SelectionChanged="Group_SelectionChanged"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Channels List and Video Player -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="350"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Channels List -->
+                <ListBox x:Name="ChannelsList" Background="#1e1e1e" BorderThickness="1,0,0,0" BorderBrush="#3e3e42"
+                         SelectionChanged="Channel_SelectionChanged" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="10,8" BorderThickness="0,0,0,1" BorderBrush="#3e3e42" Background="Transparent">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="50"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Image Grid.Column="0" Source="{Binding LogoUrl}" Width="40" Height="40" Stretch="UniformToFill" Margin="0,0,10,0"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding GroupTitle}" FontSize="10" Foreground="#888888"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#0e639c"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#2d2d30"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+
+                <!-- Video Player Area -->
+                <Grid Grid.Column="1" Background="#000000">
+                    <vlc:VideoView x:Name="VideoView"/>
+                    <TextBlock x:Name="VideoPlaceholder" Text="Выберите канал для воспроизведения"
+                               FontSize="18" Foreground="#666666" TextAlignment="Center"
+                               VerticalAlignment="Center" HorizontalAlignment="Center"
+                               IsHitTestVisible="False"/>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <!-- Control Bar -->
+        <Border Grid.Row="2" Grid.ColumnSpan="2" Background="#2d2d30" Padding="15,10">
+            <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
+                <Button Content="▶" Padding="10,5" Background="#0e639c" Foreground="White" Margin="0,0,5,0" Click="Play_Click"/>
+                <Button Content="⏸" Padding="10,5" Background="#0e639c" Foreground="White" Margin="0,0,5,0" Click="Pause_Click"/>
+                <Button Content="⏹" Padding="10,5" Background="#0e639c" Foreground="White" Click="Stop_Click"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center">
+                <TextBlock Text="Громкость:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <Slider x:Name="VolumeSlider" Width="150" Maximum="100" Minimum="0" Value="100"
+                        VerticalAlignment="Center" ValueChanged="Volume_Changed"/>
+            </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
